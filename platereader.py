@@ -11,7 +11,7 @@ import cairo
 # define positions of values in Excel file              #
 # ===================================================== #
 
-# rows for starting values
+# row numbers for starting values
 OD_start_row  = 28
 CFP_start_row = 59 
 GFP_start_row = 90 
