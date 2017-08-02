@@ -35,8 +35,11 @@ def setOVERtoMAX(value):
     else:
         return value
 
-def rescale(values):
-    return (values - np.min(values))/(np.max(values) - np.min(values))
+def rescale(values,log = False):
+    if log:
+        return (np.log(values) - np.min(np.log(values)))/(np.max(np.log(values)) - np.min(np.log(values)))
+    else:
+        return (values - np.min(values))/(np.max(values) - np.min(values))
 
 
 # ===================================================== #
@@ -52,6 +55,7 @@ def main():
     parser.add_argument("-S","--sheets",nargs="*",default=None)
     parser.add_argument("-o","--outbasename",type=str,default="")
     parser.add_argument("-p","--pixelsize",type=int,default = 20)
+    parser.add_argument("-L","--logarithmic",default=False,action="store_true")
     args = parser.parse_args()
 
 
@@ -77,10 +81,10 @@ def main():
             mC  = np.array([[setOVERtoMAX(sheet['{}{}'.format(chr(starting_column+i),mC_start_row  + j)].value) for i in range(platex)] for j in range(platey) ],dtype=np.float64 )
             
             # rescale, range is now [0:1]
-            ODr  = rescale(OD)
-            CFPr = rescale(CFP)
-            GFPr = rescale(GFP)
-            mCr  = rescale(mC)
+            ODr  = rescale(OD,  log = args.logarithmic)
+            CFPr = rescale(CFP, log = args.logarithmic)
+            GFPr = rescale(GFP, log = args.logarithmic)
+            mCr  = rescale(mC,  log = args.logarithmic)
             
             # initialize graphics generation
             CairoImage = cairo.ImageSurface(cairo.FORMAT_ARGB32,platex * args.pixelsize,4 * platey * args.pixelsize)
