@@ -6,6 +6,7 @@ import openpyxl
 import cairo
 import time
 import dateutil
+import sys
 
 # ===================================================== #
 # define positions of values in Excel file              #
@@ -58,6 +59,7 @@ def AddRow(alldata,newdata):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i","--infile",required=True,default=None)
+    parser.add_argument("-o","--outfile",default="out",type=str)
     args = parser.parse_args()
 
 
@@ -73,7 +75,7 @@ def main():
         timestr = sheet[cell].value
         t_start = float((dateutil.parser.parse(timestr)).strftime("%s"))
         if t_start > 0:
-            print("reading data from sheet '{}': starttime = {}".format(sheet.title,t_start))
+            print("reading data from sheet '{}': starttime = {}".format(sheet.title,t_start),file=sys.stderr)
             i = 0
             while not sheet[convert(data_starting_column,data_starting_row + i)].value is None:
                 newrow         = np.array([float(sheet[convert(data_starting_column + j,data_starting_row + i)].value) for j in range(platex * platey + 2)]) # +2 for time and temp columns
@@ -81,8 +83,12 @@ def main():
                 newrow_time[0] = t_start
                 assay          = AddRow(assay,newrow+newrow_time)
                 i += 1
+    assay = np.sort(assay,axis=0)
 
-    print(assay)
+    assay[:,0] -= np.min(assay[:,0])
+    assay[:,0] /= 3600.
+    np.savetxt(args.outfile,assay)
+    #print(assay)
 
 # if called from cmdline, then start here
 if __name__ == "__main__":
