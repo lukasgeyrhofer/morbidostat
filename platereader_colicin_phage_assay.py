@@ -18,7 +18,6 @@ data_starting_row = 37
 # starting column, usually B
 time_starting_column = 2
 data_starting_column = 2
-
 # plate dimensions
 platex = 12
 platey = 8
@@ -37,9 +36,6 @@ def column_string(n):
         div=int((div-module)/26)
     return string
 
-def baseN(num,b=26,numerals="ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
-    return ((num == 0) and numerals[0]) or (baseN(num // b, b, numerals).lstrip(numerals[0]) + numerals[num % b])
-
 def convert(x,y):
     return '{}{}'.format(column_string(x),y)
 
@@ -48,7 +44,6 @@ def AddRow(alldata,newdata):
         r = np.array([newdata])
     else:
         r = np.concatenate([alldata,np.array([newdata])],axis = 0)
-    #r[-1:0] += starttime_newdata
     return r
 
 
@@ -60,6 +55,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i","--infile",required=True,default=None)
     parser.add_argument("-o","--outfile",default="out",type=str)
+    parser.add_argument("-B","--backgroundcolumn",default=None,type=int)
     args = parser.parse_args()
 
 
@@ -83,12 +79,15 @@ def main():
                 newrow_time[0] = t_start
                 assay          = AddRow(assay,newrow+newrow_time)
                 i += 1
-    assay = np.sort(assay,axis=0)
 
+    # rescale time
     assay[:,0] -= np.min(assay[:,0])
     assay[:,0] /= 3600.
+    
+    if not args.backgroundcolumn is None:
+        assay[:,2:] -= np.mean(assay[:,args.backgroundcolumn])
+    
     np.savetxt(args.outfile,assay)
-    #print(assay)
 
 # if called from cmdline, then start here
 if __name__ == "__main__":
