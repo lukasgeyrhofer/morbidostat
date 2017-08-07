@@ -55,7 +55,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i","--infile",required=True,default=None)
     parser.add_argument("-o","--outfile",default="out",type=str)
-    parser.add_argument("-B","--backgroundcolumn",default=None,type=int)
+    parser.add_argument("-B","--backgroundcolumn",default=None,type=int,nargs="*")
+    parser.add_argument("-b","--bgfile",default="bg.txt")
     args = parser.parse_args()
 
 
@@ -85,7 +86,20 @@ def main():
     assay[:,0] /= 3600.
     
     if not args.backgroundcolumn is None:
-        assay[:,2:] -= np.mean(assay[:,args.backgroundcolumn])
+        meanbackground = 0
+        backgroundvalues = np.array([])
+        if len(args.backgroundcolumn) >= 1:
+            for bgc in args.backgroundcolumn:
+                meanbackground += np.mean(assay[:,bgc])
+                backgroundvalues = np.concatenate([backgroundvalues,assay[:,bgc]])
+        assay[:,2:] = np.abs(assay[:,2:] - np.median(backgroundvalues))
+        h,b = np.histogram(backgroundvalues,bins = 40,range=[.08,.09])
+        
+        #print(np.mean(backgroundvalues),np.median(backgroundvalues),file = sys.stderr)
+        
+        b = b[:-1] + .5*np.diff(b)
+        np.savetxt(args.bgfile,np.transpose([b,h]))
+        
     
     np.savetxt(args.outfile,assay)
 
