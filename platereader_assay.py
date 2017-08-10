@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
 import numpy as np
 import argparse
 import openpyxl
@@ -15,6 +16,7 @@ import sys
 # row numbers for starting values
 time_starting_row = 33
 data_starting_row = 37
+id_starting_row   = 36
 # starting column, usually B
 time_starting_column = 2
 data_starting_column = 2
@@ -47,6 +49,18 @@ def AddRow(alldata,newdata):
     return r
 
 
+def splitCellID(cellID):
+    numbers = [str(i) for i in range(10)]
+    letter = ''
+    number = ''
+    for c in cellID:
+        if c in numbers:
+            number += c
+        else:
+            letter += c
+    return letter,number
+    
+
 # ===================================================== #
 # actual progam                                         #
 # ===================================================== #
@@ -55,10 +69,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i","--infile",required=True,default=None)
     parser.add_argument("-o","--outfile",default="out",type=str)
-    parser.add_argument("-B","--backgroundcolumn",default=None,type=int,nargs="*")
-    parser.add_argument("-b","--bgfile",default="bg.txt")
+    parser.add_argument("-B","--backgroundcolumn",default=[],type=str,nargs="*")
+    parser.add_argument("-b","--backgroundrows",default = [],type=str,nargs="*")
+    parser.add_argument("-O","--backgroundoutfile",default="background.histogram.txt",type=str)
     args = parser.parse_args()
-
 
     # open Excel file
     try:
@@ -68,6 +82,7 @@ def main():
 
     assay = None
     for sheet in data:
+        cellIDs = np.array([splitCellID(sheet[convert(data_starting_column + j + 2,id_starting_row)].value) for j in range(platex * platey)])
         cell = convert(time_starting_column,time_starting_row)
         timestr = sheet[cell].value
         t_start = float((dateutil.parser.parse(timestr)).strftime("%s"))
@@ -88,17 +103,21 @@ def main():
     if not args.backgroundcolumn is None:
         meanbackground = 0
         backgroundvalues = np.array([])
-        if len(args.backgroundcolumn) >= 1:
-            for bgc in args.backgroundcolumn:
-                meanbackground += np.mean(assay[:,bgc])
-                backgroundvalues = np.concatenate([backgroundvalues,assay[:,bgc]])
+        for well in range(platex * platey):
+            if (len(args.backgroundcolumn) >= 1):
+                if (cellIDs[well,0] in args.backgroundcolumn):
+                    backgroundvalues = np.concatenate([backgroundvalues,assay[:,well+2]])
+                    print(cellIDs[well])
+            if (len(args.backgroundrows) >= 1):
+                if (cellIDs[well,1] in args.backgroundrows):
+                    print(cellIDs[well])
+                    backgroundvalues = np.concatenate([backgroundvalues,assay[:,well+2]])
+        print(backgroundvalues)
         assay[:,2:] = np.abs(assay[:,2:] - np.median(backgroundvalues))
-        h,b = np.histogram(backgroundvalues,bins = 40,range=[.08,.09])
-        
-        #print(np.mean(backgroundvalues),np.median(backgroundvalues),file = sys.stderr)
+        h,b = np.histogram(backgroundvalues,bins = 80,range=[.02,.1])
         
         b = b[:-1] + .5*np.diff(b)
-        np.savetxt(args.bgfile,np.transpose([b,h]))
+        np.savetxt(args.backgroundoutfile,np.transpose([b,h]))
         
     
     np.savetxt(args.outfile,assay)
